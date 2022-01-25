@@ -3,7 +3,7 @@ var ss = SpreadsheetApp.getActiveSpreadsheet();
 var ActiveSheet = SpreadsheetApp.openById("1LJp4Ecau5UCK_aCA9vZiofR1__dLLl66P-6OjnPjIYM").getSheetByName("Réponses au formulaire 1");
 
 function onOpen() {
-    var menuEntries = [{name: "Ajouter les événements à l'agenda", functionName: "importCalendar"}];
+    var menuEntries = [{ name: "Ajouter les événements à l'agenda", functionName: "importCalendar" }];
     ss.addMenu("Agenda", menuEntries); // Pour ajouter une menu Agenda et un sous-menu "ajouter les événements" dans la feuille de calcul. Cela permettra de tester manuellement la liaison entre la feuille de calcul et l'agenda
 }
 
@@ -40,17 +40,17 @@ function copyRows() {
     for (var i = 1; i < dataValues.length; i++) {
         if (dataValues[i][12] === "x") {
             copySheet.appendRow([dataValues[i][0],
-                dataValues[i][1],
-                dataValues[i][2],
-                dataValues[i][3],
-                dataValues[i][4],
-                dataValues[i][5],
-                dataValues[i][6],
-                dataValues[i][7],
-                dataValues[i][8],
-                dataValues[i][9],
-                dataValues[i][10],
-                dataValues[i][11]]);
+            dataValues[i][1],
+            dataValues[i][2],
+            dataValues[i][3],
+            dataValues[i][4],
+            dataValues[i][5],
+            dataValues[i][6],
+            dataValues[i][7],
+            dataValues[i][8],
+            dataValues[i][9],
+            dataValues[i][10],
+            dataValues[i][11]]);
         }
     }
 
@@ -85,7 +85,7 @@ function importCalendar() {
     var data = dataRange.getValues();
 
     for (var i = 0; i < data.length; i++) {
-        var currentRow = data[i];
+        //var currentRow = data[i];
         var date01 = new Date();
         var column = data[i];
         var DateDebut = column[1];        // Colonne B - date de début réservation
@@ -97,9 +97,9 @@ function importCalendar() {
         var ServiceInfo = column[7];      // Colonne H - Service Info
         var Vehicule = column[8];         // Colonne I - Véhicule
 
-//------------------------------------------------------------------------------------------------
-//--------------------------VERIFIER LES RESERVATION TERMINE--------------------------------------OK
-//------------------------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------------------
+        //--------------------------VERIFIER LES RESERVATION TERMINE--------------------------------------OK
+        //------------------------------------------------------------------------------------------------
 
 
         if (date01.valueOf() > DateFin && DateDebut != "") {
@@ -108,19 +108,23 @@ function importCalendar() {
         }
 
 
-//------------------------------------------------------------------------------------------------
-//---------------------------réservation voiture Service INFO-------------------------------------OK
-//------------------------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------------------
+        //---------------------------réservation voiture Service INFO-------------------------------------OK
+        //------------------------------------------------------------------------------------------------
 
         if (ServiceInfo === "Oui" && Mail != "" && Vehicule == "") {
             sheet.getRange(startcolumn + i, 9).setValue("Kangoo");
         }
 
 
-//-------------------------------------------------------------------------------------------------
-//-----------------------------------Boucle attribution voiture------------------------------------
-//-------------------------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------------------------
+        //-----------------------------------Boucle attribution voiture------------------------------------
+        //-------------------------------------------------------------------------------------------------
         if (Mail != "" && Vehicule == "") {
+
+            var reservedCars = [];
+            var cars = ["voiture 1", "voiture 2", "voiture 3"];
+
 
             for (var a = 0; a < data.length; a++) {
                 var currentRow = data[a];
@@ -132,16 +136,22 @@ function importCalendar() {
                 // var info = currentRow[7];
                 // var resa = currentRow[8];
 
-                if (DateDebut < currentRow[1] && DateFin < currentRow[1] || DateDebut > currentRow[2]) {
-                    sheet.getRange(startcolumn + i, 9).setValue("Véhicule 1");
+                if ((DateDebut >= sdate && DateDebut <= edate) || (DateFin >= sdate && DateFin <= edate)) {
+                    reservedCars.push(currentRow[8]);  
                 }
             }
+
+            let availableCars = cars.filter(x => reservedCars.indexOf(x) === -1);
+
+            sheet.getRange(startcolumn + i, 9).setValue(availableCars[0]);
+
         }
 
 
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------Envoi Mail confirmation-------------------------------------
-//-------------------------------------------------------------------------------------------------
+
+        //-------------------------------------------------------------------------------------------------
+        //-------------------------------------Envoi Mail confirmation-------------------------------------
+        //-------------------------------------------------------------------------------------------------
 
 
         var formattedDebut = Utilities.formatDate(new Date(DateDebut), "GMT +1", "dd/MM/yyyy");
@@ -168,7 +178,7 @@ function importCalendar() {
                 var cal = CalendarApp.openByName(calendarName);
 
 
-                cal.createEvent(Prenom + " " + Vehicule, new Date(DateDebut), new Date(DateFin), {description: description}); // Création de l'événement dans l'agenda avec le titre, la date de début, la date de fin et la description complète
+                cal.createEvent(Prenom + " " + Vehicule, new Date(DateDebut), new Date(DateFin), { description: description }); // Création de l'événement dans l'agenda avec le titre, la date de début, la date de fin et la description complète
 
 
                 var currentRow = data[i]
