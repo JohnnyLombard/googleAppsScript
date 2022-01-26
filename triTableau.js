@@ -1,6 +1,6 @@
 // Exemple de function pour trier un tableau
 
-let reservedCars = [];
+let reservedCars     = [];
 
 let car1 = [240, "Voiture 1"];
 let car2 = [240, "Voiture 2"];
@@ -25,3 +25,24 @@ reservedCars.sort((first, second) => {
 })
 
 console.log(reservedCars);
+
+// fonction de filtre associée
+
+let cars = ["Voiture 1", "Voiture 2", "Voiture 3", "Voiture 4", "Voiture 5", "Voiture 6"];
+
+console.log("Cars avant filtre", cars);
+
+let filteredCars = cars.filter((value) => {
+    let answer = true;
+
+    for (let i = 0; i < reservedCars.length; i++) {
+        if (reservedCars[i].indexOf(value) !== -1) {
+            answer = false;
+            break;
+        }
+    }
+
+    return answer;
+})
+
+console.log("Cars après filtre", filteredCars);
