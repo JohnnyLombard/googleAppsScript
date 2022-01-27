@@ -4,7 +4,7 @@ var ActiveSheet = SpreadsheetApp.openById("1LJp4Ecau5UCK_aCA9vZiofR1__dLLl66P-6O
 
 function onOpen() {
     var menuEntries = [{ name: "Ajouter les événements à l'agenda", functionName: "importCalendar" }];
-    ss.addMenu("Agenda", menuEntries); // Pour ajouter une menu Agenda et un sous-menu "ajouter les événements" dans la feuille de calcul. Cela permettra de tester manuellement la liaison entre la feuille de calcul et l'agenda
+    ss.addMenu("Agenda", menuEntries); // Pour ajouter une menu Agenda et un sous-menu "ajouter les événements" afin de tester manuellement le programme
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -73,6 +73,10 @@ function addMenu() {
 //   addMenu(); 
 // }
 
+function compare(x, y) {        //--Fonction de comparaison si pas de disponibilité
+    return x - y;
+}
+
 //----------------------------------------------------------------------------------------------------------
 //--------------------------------RESERVATION---------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------
@@ -109,45 +113,114 @@ function importCalendar() {
 
 
         //------------------------------------------------------------------------------------------------
-        //---------------------------réservation voiture Service INFO-------------------------------------OK
+        //---------------------------réservation voiture Service INFO-------------------------------------
         //------------------------------------------------------------------------------------------------
 
-        if (ServiceInfo === "Oui" && Mail != "" && Vehicule == "") {
+        if (ServiceInfo == "Oui" && Vehicule == "") {
             sheet.getRange(startcolumn + i, 9).setValue("Kangoo");
-        }
+
+            for (var b = 0; b < data.length; b++) {
+              currentRow = data[b];
+              var sdate = currentRow[1];
+              var edate = currentRow[2];
+              if((DateDebut >= sdate && DateDebut<= edate && currentRow[8] == "Kangoo" && currentRow[7] == "Non" ) || (DateFin >= sdate && DateFin <= edate && currentRow[8] == "Kangoo" && currentRow[7] == "Non" )) {
+                sheet.getRange(startcolumn + b, 13).setValue("x");
+                sheet.getRange(startcolumn + b, 12).setValue("Oui");
+                sheet.getRange(startcolumn + b, 11).setValue("TERMINE");
+
+                var sendTo = data[b][5];
+       	        var messageConfirme = "";
+                                        messageConfirme += "<p>Bonjour, " +data[b][3] + " </p>" +
+                                        "<p>Nous vous informons de l'annulation du Kangoo, car le service Informatique est prioritaire." + "</p>" +
+                                        "<p>Merci de votre compréhension." + "</p>" +
+                                        // "<p>Du : " +formatDebut + "</p>" +
+                                        // "<p>Au : " +FormatFin + "<p>"+
+
+                                        "<p>Bonne journée," + "</p>";
+                                          var emailTo =data[b][5]; // personnalisation du mail d'envoi 
+                                          var Subject = "Annulation Réservation Kangoo ";
+
+                                          MailApp.sendEmail({
+                                                  to: emailTo,
+                                                  cc: "",
+                                                  subject: Subject,
+                                                  htmlBody: messageConfirme,});}
+
+              }
+            }
 
 
         //-------------------------------------------------------------------------------------------------
         //-----------------------------------Boucle attribution voiture------------------------------------
         //-------------------------------------------------------------------------------------------------
-        if (Mail != "" && Vehicule == "") {
+        if (Mail != "" && Vehicule == "" && ServiceInfo != "Oui") {
 
+            var checkKm = [];
             var reservedCars = [];
-            var cars = ["voiture 1", "voiture 2", "voiture 3"];
+            var cars = ["Porche", "Vélo", "A pied","Kangoo"]; // mettre véhicule dans l'ordre voulu
 
 
             for (var a = 0; a < data.length; a++) {
                 var currentRow = data[a];
-                var sdate = currentRow[1];		//récupération des données
+                var sdate = currentRow[1];		//récupération des données de la ligne en cours
                 var edate = currentRow[2];
-                // var personne = currentRow[3];
-                // var mailAnnul = currentRow[5];
-                //  var dist = currentRow[6];
-                // var info = currentRow[7];
-                // var resa = currentRow[8];
-
+              
                 if ((DateDebut >= sdate && DateDebut <= edate) || (DateFin >= sdate && DateFin <= edate)) {
                     reservedCars.push(currentRow[8]);  
+                    checkKm.push(currentRow[6]);
                 }
             }
 
+
             let availableCars = cars.filter(x => reservedCars.indexOf(x) === -1);
+
+            if(availableCars != "") { // rajout
 
             sheet.getRange(startcolumn + i, 9).setValue(availableCars[0]);
 
-        }
+            Vehicule = availableCars[0];
 
+            } // rajout --------------------------------------
+            else {
+              checkKm.sort(compare);
+              if ( Distance > checkKm[0] && currentRow[7] != "Oui") {
+                for (var c =0; c < data.length; c++) {
+                  currentRow = data[c];
 
+                  if (currentRow[6] === checkKm[0]) {
+                    var cancelpersonne = currentRow[3];
+                    var cancelMail = currentRow[5];
+                    var cancelCar = currentRow[8];
+                    sheet.getRange(startcolumn + c, 13).setValue("x");
+                    sheet.getRange(startcolumn + c, 12).setValue("Oui");
+                    sheet.getRange(startcolumn + c, 11).setValue("TERMINE"); //voir simplifier en une colonne (annulé et terminer)
+                    sheet.getRange(startcolumn + i, 9).setValue(cancelCar);
+                    Vehicule = cancelCar
+
+                var sendTo = cancelMail;
+       	        var messageConfirme = "";
+                                        messageConfirme += "<p>Bonjour, " +cancelpersonne + " </p>" +
+                                        "<p>Nous vous informons de l'annulation du véhicule : "+ ""+ cancelCar + "</p>" +
+                                        "<p>Merci de votre compréhension." + "</p>" +
+                                        // "<p>Du : " +formatDebut + "</p>" +
+                                        // "<p>Au : " +FormatFin + "<p>"+
+
+                                        "<p>Bonne journée," + "</p>";
+                                          var emailTo =cancelMail; // personnalisation du mail d'envoi 
+                                          var Subject = "Annulation Réservation " +cancelCar;
+
+                                          MailApp.sendEmail({
+                                                  to: emailTo,
+                                                  cc: "",
+                                                  subject: Subject,
+                                                  htmlBody: messageConfirme,});}
+
+                  }
+                }
+              }
+            }
+
+        
 
         //-------------------------------------------------------------------------------------------------
         //-------------------------------------Envoi Mail confirmation-------------------------------------
@@ -184,7 +257,7 @@ function importCalendar() {
                 var currentRow = data[i]
                 var sendTo = currentRow[6]
                 var messageConfirme = "";
-                messageConfirme += "<p>Bonjour," + "</p>" +
+                messageConfirme += "<p>Bonjour" + "" + currentRow[3]+ "," + "</p>" +
                     "<p>Nous vous confirmons le réservation du véhicule (sous réserve d'annulation) : " + Vehicule + "</p>" +
                     "<p>Du : " + formattedDebut + "</p>" +
                     "<p>Au : " + FormattedFin + "<p>" +
@@ -210,51 +283,3 @@ function importCalendar() {
 
     }
 }
-
-//  if(ServiceInfo ==="Oui" && Mail !="" && Vehicule =="") {
-//             sheet.getRange(startcolumn + i, 9).setValue("Kangoo");}
-
-//             if(Mail !="" && Vehicule =="" && ServiceInfo !="Oui") {
-
-
-//                 sheet.getRange(startcolumn + i, 9).setValue("Véhicule 1");
-//               } 
-
-
-//           for (var j = 0; j < data.length; j++) {
-//             var currentRow = data[j];
-// 	          var sdate = currentRow[1];		//récupération des données
-// 	          var edate = currentRow[2];
-// 	          var personne = currentRow[3];
-//             var mailAnnul = currentRow[5];
-// 	          var dist = currentRow[6];
-// 	          var info = currentRow[7];
-//             var resa = currentRow[8];
-
-
-//             if(Vehicule == "Kangoo" && resa == "Kangoo" && sdate <= DateFin <= edate && info == "Non" && data[i][12] !="x" && data[j][8] != "") {
-
-
-//             sheet.getRange(startcolumn + i, 13).setValue("x");
-//             sheet.getRange(startcolumn + i, 12).setValue("oui");
-//             sheet.getRange(startcolumn + i, 11).setValue("TERMINE");
-//             sheet.getRange(startcolumn + i, 10).setValue(EVENT_IMPORTED);
-//               var sendTo = currentRow[5];
-//        	      var messageConfirme = "";
-//                                         messageConfirme += "<p>Bonjour, " +currentRow[4] + " </p>" +
-//                                         "<p>Nous vous informons de l'annulation de votre réservation pour le véhicule : "+resa + ", car le service Informatique est prioritaire." + "</p>" +
-//                                         "<p>Merci de votre compréhension." + "</p>" +
-//                                         // "<p>Du : " +formatDebut + "</p>" +
-//                                         // "<p>Au : " +FormatFin + "<p>"+
-
-//                                         "<p>Bonne journée," + "</p>";
-//                                           var emailTo = mailAnnul; // personnalisation du mail d'envoi 
-//                                           var Subject = "Annulation Réservation " + resa;
-
-//                                           MailApp.sendEmail({
-//                                                   to: emailTo,
-//                                                   cc: "",
-//                                                   subject: Subject,
-//                                                   htmlBody: messageConfirme,});}
-
-//             }
